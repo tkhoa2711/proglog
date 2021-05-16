@@ -60,13 +60,19 @@ func (i *index) Close() error {
 }
 
 // Read takes an offset and returns the associated record's position in the
-// store.
+// store. If the input offset is negative, it will read the index in reverse
+// direction from the end. For example, Read(-1) returns the last entry of the
+// index.
 func (i *index) Read(in int64) (out uint32, pos uint64, err error) {
 	if i.size == 0 {
 		return 0, 0, io.EOF
 	}
 
-	out = uint32(in)
+	if in >= 0 {
+		out = uint32(in)
+	} else {
+		out = uint32((i.size / entryWidth) - uint64(-in))
+	}
 	pos = uint64(out) * entryWidth
 	if i.size < pos+entryWidth {
 		return 0, 0, io.EOF

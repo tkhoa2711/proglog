@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -91,13 +92,35 @@ func TestIndexClose(t *testing.T) {
 	require.Equal(t, int64(24), fi.Size())
 }
 
+var readNegativeIndexTests = []struct {
+	in  int64
+	off uint32
+	pos uint64
+	err error
+}{
+	{-1, entries[1].Off, entries[1].Pos, nil},
+	{-2, entries[0].Off, entries[0].Pos, nil},
+	{-3, 0, 0, io.EOF},
+}
+
 func TestIndexReadNegativeOffset(t *testing.T) {
 	idx, f, err := makeNewIndexWithSomeData()
 	defer os.Remove(f.Name())
 	require.NoError(t, err)
 
-	_, _, err = idx.Read(-1)
-	require.Error(t, err)
+	for _, tt := range readNegativeIndexTests {
+		t.Run(strconv.FormatInt(tt.in, 10), func(t *testing.T) {
+			off, pos, err := idx.Read(tt.in)
+
+			if tt.err != nil {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.off, off)
+				require.Equal(t, tt.pos, pos)
+			}
+		})
+	}
 }
 
 func TestIndexRead(t *testing.T) {

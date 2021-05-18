@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path"
+
+	api "github.com/tkhoa2711/proglog/api/v1"
+	"google.golang.org/protobuf/proto"
 )
 
 // The segment wraps the index and store types to coordinate operations across
@@ -61,4 +64,46 @@ func newSegment(dir string, baseOffset uint64, c Config) (*segment, error) {
 	}
 
 	return s, nil
+}
+
+// Append writes the record to the segment and returns its offset.
+func (s *segment) Append(record *api.Record) (offset uint64, err error) {
+	cur := s.nextOffset
+	record.Offset = cur
+	b, err := proto.Marshal(record)
+	if err != nil {
+		return 0, err
+	}
+
+	_, pos, err := s.store.Append(b)
+	if err != nil {
+		return 0, err
+	}
+
+	if err = s.index.Write(uint32(s.nextOffset-s.baseOffset), pos); err != nil {
+		return 0, err
+	}
+
+	s.nextOffset++
+	return cur, nil
+}
+
+// Read returns the record for the given offset.
+func (s *segment) Read(off uint64) (*api.Record, error) {
+	_, pos, err := s.index.Read(int64(off - s.baseOffset))
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := s.store.Read(pos)
+	if err != nil {
+		return nil, err
+	}
+
+	record := &api.Record{}
+	if err = proto.Unmarshal(b, record); err != nil {
+		return nil, err
+	}
+
+	return record, nil
 }

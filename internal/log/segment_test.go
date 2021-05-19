@@ -2,6 +2,7 @@ package log
 
 import (
 	"errors"
+	"io"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -22,6 +23,22 @@ func makeSegment(baseOffset uint64) (s *segment, dir string, err error) {
 	s, err = newSegment(dir, 16, c)
 	if err != nil {
 		return nil, "", err
+	}
+
+	return s, dir, nil
+}
+
+func makeSegmentWithSomeData(baseOffset uint64, record *api.Record) (s *segment, dir string, err error) {
+	s, dir, err = makeSegment(baseOffset)
+	if err != nil {
+		return nil, dir, err
+	}
+
+	for i := uint64(0); i < 3; i++ {
+		_, err := s.Append(record)
+		if err != nil {
+			return nil, dir, err
+		}
 	}
 
 	return s, dir, nil
@@ -57,21 +74,29 @@ func TestSegmentAppend(t *testing.T) {
 
 func TestSegmentReadAfterAppend(t *testing.T) {
 	var baseOffset = uint64(16)
-	s, dir, err := makeSegment(baseOffset)
+	record := &api.Record{Value: []byte("Hello World!")}
+
+	s, dir, err := makeSegmentWithSomeData(baseOffset, record)
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	want := &api.Record{Value: []byte("Hello World!")}
-
 	for i := uint64(0); i < 3; i++ {
-		off, err := s.Append(want)
+		got, err := s.Read(baseOffset + i)
 		require.NoError(t, err)
-		require.Equal(t, baseOffset+i, off)
-
-		got, err := s.Read(off)
-		require.NoError(t, err)
-		require.Equal(t, want.Value, got.Value)
+		require.Equal(t, record.Value, got.Value)
 	}
+}
+
+func TestSegmentAppendOverLimit(t *testing.T) {
+	var baseOffset = uint64(16)
+	record := &api.Record{Value: []byte("Hello World!")}
+
+	s, dir, err := makeSegmentWithSomeData(baseOffset, record)
+	require.NoError(t, err)
+	defer os.RemoveAll(dir)
+
+	_, err = s.Append(record)
+	require.Equal(t, io.EOF, err)
 }
 
 func TestSegmentClose(t *testing.T) {

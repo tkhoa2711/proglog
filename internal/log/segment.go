@@ -130,3 +130,10 @@ func (s *segment) Remove() error {
 	}
 	return nil
 }
+
+// IsMaxed checks if the segment has reached its size limit, either for the
+// store or the index.
+func (s *segment) IsMaxed() bool {
+	return s.store.size >= s.config.Segment.MaxStoreBytes ||
+		s.index.size >= s.config.Segment.MaxIndexBytes
+}

@@ -6,6 +6,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+
+	api "github.com/tkhoa2711/proglog/api/v1"
 )
 
 type Log struct {
@@ -14,6 +17,8 @@ type Log struct {
 
 	segments      []*segment
 	activeSegment *segment
+
+	mu sync.RWMutex
 }
 
 // NewLog creates a new log based on given config in the given directory.
@@ -78,5 +83,32 @@ func (l *Log) newSegment(baseOffset uint64) error {
 	}
 	l.segments = append(l.segments, s)
 	l.activeSegment = s
+	return nil
+}
+
+// Append adds new record to the log and return its offset value.
+func (l *Log) Append(record *api.Record) (off uint64, err error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	off, err = l.activeSegment.Append(record)
+	if err != nil {
+		return 0, err
+	}
+	if l.activeSegment.IsMaxed() {
+		err = l.newSegment(off + 1)
+	}
+	return off, err
+}
+
+// Close closes the log and its segments.
+func (l *Log) Close() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	for _, segment := range l.segments {
+		if err := segment.Close(); err != nil {
+			return err
+		}
+	}
 	return nil
 }

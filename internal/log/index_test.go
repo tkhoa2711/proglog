@@ -15,6 +15,7 @@ var (
 		Segment: struct {
 			MaxIndexBytes uint64
 			MaxStoreBytes uint64
+			InitialOffset uint64
 		}{
 			MaxIndexBytes: 1024,
 		},

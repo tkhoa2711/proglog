@@ -57,6 +57,24 @@ func TestNewSegment(t *testing.T) {
 	require.Equal(t, uint64(16), s.nextOffset)
 }
 
+func TestNewSegmentRehydrateFromExistingState(t *testing.T) {
+	t.Skip("FIXME")
+	var baseOffset = uint64(16)
+	record := &api.Record{Value: []byte("Hello World!")}
+
+	s, dir, err := makeSegmentWithSomeData(baseOffset, record)
+	require.NoError(t, err)
+	defer os.RemoveAll(dir)
+
+	c := Config{}
+	c.Segment.MaxStoreBytes = uint64(len(record.Value) * 3)
+	c.Segment.MaxIndexBytes = entryWidth * 3
+	s2, err := newSegment(dir, baseOffset, c)
+	require.NoError(t, err)
+	require.Equal(t, s.index.size, s2.index.size)
+	require.Equal(t, s.store.size, s2.store.size)
+}
+
 func TestSegmentAppend(t *testing.T) {
 	var baseOffset = uint64(16)
 	s, dir, err := makeSegment(baseOffset)

@@ -17,6 +17,7 @@ func TestLog(t *testing.T) {
 		t.Run(scenario, func(t *testing.T) {
 			dir, err := ioutil.TempDir("", "log-test")
 			require.NoError(t, err)
+			defer os.RemoveAll(dir)
 
 			c := Config{}
 			log, err := NewLog(dir, c)

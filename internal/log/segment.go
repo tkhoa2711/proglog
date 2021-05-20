@@ -108,6 +108,7 @@ func (s *segment) Read(off uint64) (*api.Record, error) {
 	return record, nil
 }
 
+// Close closes the segment's store and index files.
 func (s *segment) Close() error {
 	if err := s.index.Close(); err != nil {
 		return err
@@ -118,6 +119,7 @@ func (s *segment) Close() error {
 	return nil
 }
 
+// Remove closes the segment and remove all of its store and index files.
 func (s *segment) Remove() error {
 	if err := s.Close(); err != nil {
 		return err

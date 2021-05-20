@@ -95,6 +95,7 @@ func (i *index) Write(off uint32, pos uint64) error {
 	return nil
 }
 
+// Name returns the name of the physical index file.
 func (i *index) Name() string {
 	return i.file.Name()
 }

@@ -2,6 +2,7 @@ package log
 
 import (
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,6 +14,7 @@ func TestLog(t *testing.T) {
 		"new empty log":               testNewEmptyLog,
 		"new log from existing state": testNewLogFromExistingState,
 		"append":                      testLogAppend,
+		"append over size limit":      testLogAppendOverSegmentSizeLimit,
 	} {
 		t.Run(scenario, func(t *testing.T) {
 			dir, err := ioutil.TempDir("", "log-test")
@@ -20,6 +22,7 @@ func TestLog(t *testing.T) {
 			defer os.RemoveAll(dir)
 
 			c := Config{}
+			c.Segment.MaxIndexBytes = entryWidth * 3
 			log, err := NewLog(dir, c)
 			require.NoError(t, err)
 
@@ -60,4 +63,20 @@ func testLogAppend(t *testing.T, log *Log) {
 		require.NoError(t, err)
 		require.Equal(t, i, off)
 	}
+}
+
+func testLogAppendOverSegmentSizeLimit(t *testing.T, log *Log) {
+	require.Equal(t, 1, len(log.segments))
+	record := &api.Record{
+		Value: []byte("Hello World!"),
+	}
+	for i := uint64(0); i < 3; i++ {
+		off, err := log.Append(record)
+		require.NoError(t, err)
+		require.Equal(t, i, off)
+	}
+	require.Equal(t, 2, len(log.segments))
+	require.Equal(t, log.segments[1], log.activeSegment)
+	require.Equal(t, uint64(3), log.activeSegment.baseOffset)
+	require.Equal(t, uint64(3), log.activeSegment.nextOffset)
 }

@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path"
 	"sort"
@@ -99,6 +100,23 @@ func (l *Log) Append(record *api.Record) (off uint64, err error) {
 		err = l.newSegment(off + 1)
 	}
 	return off, err
+}
+
+// Read reads the record stored at the given offset.
+func (l *Log) Read(off uint64) (*api.Record, error) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+
+	var s *segment
+	i := sort.Search(len(l.segments), func(i int) bool {
+		return l.segments[i].baseOffset > off
+	})
+	if i > len(l.segments) {
+		return nil, fmt.Errorf("offset out of range: %d", off)
+	}
+
+	s = l.segments[i-1]
+	return s.Read(off)
 }
 
 // Close closes the log and its segments.

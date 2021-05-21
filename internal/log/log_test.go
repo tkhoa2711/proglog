@@ -15,6 +15,9 @@ func TestLog(t *testing.T) {
 		"new log from existing state": testNewLogFromExistingState,
 		"append":                      testLogAppend,
 		"append over size limit":      testLogAppendOverSegmentSizeLimit,
+		"read 1 segment":              testLogReadOneSegment,
+		"read 3 segments":             testLogReadThreeSegments,
+		"read out of range":           testLogReadOutOfRange,
 	} {
 		t.Run(scenario, func(t *testing.T) {
 			dir, err := ioutil.TempDir("", "log-test")
@@ -79,4 +82,50 @@ func testLogAppendOverSegmentSizeLimit(t *testing.T, log *Log) {
 	require.Equal(t, log.segments[1], log.activeSegment)
 	require.Equal(t, uint64(3), log.activeSegment.baseOffset)
 	require.Equal(t, uint64(3), log.activeSegment.nextOffset)
+}
+
+func testLogReadOneSegment(t *testing.T, log *Log) {
+	record := &api.Record{
+		Value: []byte("Hello World!"),
+	}
+	for i := uint64(0); i < 3; i++ {
+		_, err := log.Append(record)
+		require.NoError(t, err)
+	}
+
+	for off := uint64(0); off < 3; off++ {
+		got, err := log.Read(off)
+		require.NoError(t, err)
+		require.Equal(t, record.Value, got.Value)
+	}
+}
+
+func testLogReadThreeSegments(t *testing.T, log *Log) {
+	record := &api.Record{
+		Value: []byte("Hello World!"),
+	}
+	for i := uint64(0); i < 7; i++ {
+		_, err := log.Append(record)
+		require.NoError(t, err)
+	}
+
+	for off := uint64(0); off < 7; off++ {
+		got, err := log.Read(off)
+		require.NoError(t, err)
+		require.Equal(t, record.Value, got.Value)
+	}
+}
+
+func testLogReadOutOfRange(t *testing.T, log *Log) {
+	record := &api.Record{
+		Value: []byte("Hello World!"),
+	}
+	for i := uint64(0); i < 7; i++ {
+		_, err := log.Append(record)
+		require.NoError(t, err)
+	}
+
+	got, err := log.Read(uint64(8))
+	require.Error(t, err)
+	require.Nil(t, got)
 }

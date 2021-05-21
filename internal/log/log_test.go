@@ -9,6 +9,15 @@ import (
 	api "github.com/tkhoa2711/proglog/api/v1"
 )
 
+func fillLogWithData(t *testing.T, log *Log, record *api.Record, len uint) {
+	t.Helper()
+	for i := uint64(0); i < uint64(len); i++ {
+		off, err := log.Append(record)
+		require.NoError(t, err)
+		require.Equal(t, i, off)
+	}
+}
+
 func TestLog(t *testing.T) {
 	for scenario, fn := range map[string]func(t *testing.T, log *Log){
 		"new empty log":               testNewEmptyLog,
@@ -42,10 +51,7 @@ func testNewLogFromExistingState(t *testing.T, log *Log) {
 	record := &api.Record{
 		Value: []byte("Hello World!"),
 	}
-	for i := 0; i < 3; i++ {
-		_, err := log.Append(record)
-		require.NoError(t, err)
-	}
+	fillLogWithData(t, log, record, 3)
 
 	// Close the log to flush all data to disk
 	err := log.Close()
@@ -61,11 +67,7 @@ func testLogAppend(t *testing.T, log *Log) {
 	record := &api.Record{
 		Value: []byte("Hello World!"),
 	}
-	for i := uint64(0); i < 3; i++ {
-		off, err := log.Append(record)
-		require.NoError(t, err)
-		require.Equal(t, i, off)
-	}
+	fillLogWithData(t, log, record, 7)
 }
 
 func testLogAppendOverSegmentSizeLimit(t *testing.T, log *Log) {
@@ -73,11 +75,7 @@ func testLogAppendOverSegmentSizeLimit(t *testing.T, log *Log) {
 	record := &api.Record{
 		Value: []byte("Hello World!"),
 	}
-	for i := uint64(0); i < 3; i++ {
-		off, err := log.Append(record)
-		require.NoError(t, err)
-		require.Equal(t, i, off)
-	}
+	fillLogWithData(t, log, record, 3)
 	require.Equal(t, 2, len(log.segments))
 	require.Equal(t, log.segments[1], log.activeSegment)
 	require.Equal(t, uint64(3), log.activeSegment.baseOffset)
@@ -88,10 +86,7 @@ func testLogReadOneSegment(t *testing.T, log *Log) {
 	record := &api.Record{
 		Value: []byte("Hello World!"),
 	}
-	for i := uint64(0); i < 3; i++ {
-		_, err := log.Append(record)
-		require.NoError(t, err)
-	}
+	fillLogWithData(t, log, record, 3)
 
 	for off := uint64(0); off < 3; off++ {
 		got, err := log.Read(off)
@@ -104,10 +99,7 @@ func testLogReadThreeSegments(t *testing.T, log *Log) {
 	record := &api.Record{
 		Value: []byte("Hello World!"),
 	}
-	for i := uint64(0); i < 7; i++ {
-		_, err := log.Append(record)
-		require.NoError(t, err)
-	}
+	fillLogWithData(t, log, record, 7)
 
 	for off := uint64(0); off < 7; off++ {
 		got, err := log.Read(off)
@@ -120,10 +112,7 @@ func testLogReadOutOfRange(t *testing.T, log *Log) {
 	record := &api.Record{
 		Value: []byte("Hello World!"),
 	}
-	for i := uint64(0); i < 7; i++ {
-		_, err := log.Append(record)
-		require.NoError(t, err)
-	}
+	fillLogWithData(t, log, record, 7)
 
 	got, err := log.Read(uint64(8))
 	require.Error(t, err)

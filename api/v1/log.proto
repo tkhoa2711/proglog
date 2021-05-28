@@ -28,6 +28,6 @@ message ConsumeResponse {
 service Log {
   rpc Produce (ProduceRequest) returns (ProduceResponse);
   rpc Consume (ConsumeRequest) returns (ConsumeResponse);
-  rpc ConsumeStream (ConsumeRequest) returns (ConsumeResponse);
+  rpc ConsumeStream (ConsumeRequest) returns (stream ConsumeResponse);
   rpc ProduceStream (stream ProduceRequest) returns (stream ProduceResponse);
 }

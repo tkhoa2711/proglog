@@ -10,6 +10,7 @@ import (
 	api "github.com/tkhoa2711/proglog/api/v1"
 	"github.com/tkhoa2711/proglog/internal/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 func TestServer(t *testing.T) {
@@ -20,6 +21,7 @@ func TestServer(t *testing.T) {
 	){
 		"produce/consume a message to/from the log": testProduceConsume,
 		"produce/consume stream to/from the log":    testProduceConsumeStream,
+		"consume past log boundary":                 testConsumePastLogBoundary,
 	} {
 		t.Run(scenario, func(t *testing.T) {
 			client, config, teardown := setupTest(t, nil)
@@ -138,4 +140,31 @@ func testProduceConsumeStream(t *testing.T, client api.LogClient, config *Config
 			})
 		}
 	}
+}
+
+func testConsumePastLogBoundary(
+	t *testing.T,
+	client api.LogClient,
+	config *Config,
+) {
+	ctx := context.Background()
+
+	record := &api.Record{
+		Value: []byte("Hello World!"),
+	}
+	produce, err := client.Produce(
+		ctx,
+		&api.ProduceRequest{Record: record},
+	)
+	require.NoError(t, err)
+
+	consume, err := client.Consume(
+		ctx,
+		&api.ConsumeRequest{Offset: produce.Offset + 1},
+	)
+	require.Nil(t, consume)
+
+	got := status.Code(err)
+	want := status.Code(api.ErrOffsetOutOfRange{}.GRPCStatus().Err())
+	require.Equal(t, want, got)
 }

@@ -108,13 +108,13 @@ func (l *Log) Read(off uint64) (*api.Record, error) {
 
 	var s *segment
 	i := sort.Search(len(l.segments), func(i int) bool {
-		return l.segments[i].baseOffset > off
+		return off < l.segments[i].nextOffset
 	})
-	if i > len(l.segments) {
+	if i >= len(l.segments) {
 		return nil, api.ErrOffsetOutOfRange{Offset: off}
 	}
 
-	s = l.segments[i-1]
+	s = l.segments[i]
 	return s.Read(off)
 }
 

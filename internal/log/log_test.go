@@ -24,7 +24,8 @@ func TestLog(t *testing.T) {
 		"new log from existing state": testNewLogFromExistingState,
 		"append":                      testLogAppend,
 		"append over size limit":      testLogAppendOverSegmentSizeLimit,
-		"read 1 segment":              testLogReadOneSegment,
+		"read 1 segment w/ 1 record":  testLogReadOneSegmentWithOneRecord,
+		"read 1 segment full":         testLogReadOneSegmentFull,
 		"read 3 segments":             testLogReadThreeSegments,
 		"read out of range":           testLogReadOutOfRange,
 	} {
@@ -82,7 +83,20 @@ func testLogAppendOverSegmentSizeLimit(t *testing.T, log *Log) {
 	require.Equal(t, uint64(3), log.activeSegment.nextOffset)
 }
 
-func testLogReadOneSegment(t *testing.T, log *Log) {
+func testLogReadOneSegmentWithOneRecord(t *testing.T, log *Log) {
+	record := &api.Record{
+		Value: []byte("Hello World!"),
+	}
+	fillLogWithData(t, log, record, 1)
+
+	for off := uint64(0); off < 1; off++ {
+		got, err := log.Read(off)
+		require.NoError(t, err)
+		require.Equal(t, record.Value, got.Value)
+	}
+}
+
+func testLogReadOneSegmentFull(t *testing.T, log *Log) {
 	record := &api.Record{
 		Value: []byte("Hello World!"),
 	}

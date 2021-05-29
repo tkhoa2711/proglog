@@ -1,7 +1,6 @@
 package log
 
 import (
-	"fmt"
 	"io/ioutil"
 	"path"
 	"sort"
@@ -112,7 +111,7 @@ func (l *Log) Read(off uint64) (*api.Record, error) {
 		return l.segments[i].baseOffset > off
 	})
 	if i > len(l.segments) {
-		return nil, fmt.Errorf("offset out of range: %d", off)
+		return nil, api.ErrOffsetOutOfRange{Offset: off}
 	}
 
 	s = l.segments[i-1]

@@ -114,7 +114,8 @@ func testLogReadOutOfRange(t *testing.T, log *Log) {
 	}
 	fillLogWithData(t, log, record, 7)
 
-	got, err := log.Read(uint64(8))
-	require.Error(t, err)
+	got, err := log.Read(8)
+	apiErr := err.(api.ErrOffsetOutOfRange)
+	require.Equal(t, uint64(8), apiErr.Offset)
 	require.Nil(t, got)
 }

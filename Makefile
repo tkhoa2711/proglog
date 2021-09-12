@@ -3,6 +3,8 @@ CONFIG_PATH=${HOME}/.proglog/
 .PHONY: init
 init:
 	mkdir -p ${CONFIG_PATH}
+	go install github.com/cloudflare/cfssl/cmd/cfssl@v1.6.1
+	go install github.com/cloudflare/cfssl/cmd/cfssljson@v1.6.1
 
 .PHONY: gencert
 gencert: init

@@ -1,0 +1,17 @@
+{
+  "CN": "client",
+  "hosts": [""],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "AU",
+      "L": "Melbourne",
+      "ST": "Victoria",
+      "O": "My Awesome Company",
+      "OU": "Distributed Services"
+    }
+  ]
+}

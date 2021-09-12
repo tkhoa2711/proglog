@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 )
 
+// TLSConfig defines the parameters that SetupTLSConfig() uses to determine what
+// type of *tls.Config to return.
 type TLSConfig struct {
 	CertFile      string
 	KeyFile       string

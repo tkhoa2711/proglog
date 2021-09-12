@@ -22,8 +22,8 @@ type grpcServer struct {
 }
 
 // NewGRPCServer initializes a new gRPC server with the given config.
-func NewGRPCServer(config *Config) (*grpc.Server, error) {
-	grpcSrv := grpc.NewServer()
+func NewGRPCServer(config *Config, opts ...grpc.ServerOption) (*grpc.Server, error) {
+	grpcSrv := grpc.NewServer(opts...)
 	srv := &grpcServer{Config: config}
 
 	api.RegisterLogServer(grpcSrv, srv)

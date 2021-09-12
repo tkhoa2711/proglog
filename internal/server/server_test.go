@@ -2,14 +2,16 @@ package server
 
 import (
 	"context"
-	"io/ioutil"
 	"net"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	api "github.com/tkhoa2711/proglog/api/v1"
+	"github.com/tkhoa2711/proglog/internal/config"
 	"github.com/tkhoa2711/proglog/internal/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 )
 
@@ -33,39 +35,67 @@ func TestServer(t *testing.T) {
 
 func setupTest(t *testing.T, fn func(*Config)) (
 	client api.LogClient,
-	config *Config,
+	cfg *Config,
 	teardown func(),
 ) {
 	t.Helper()
 
+	// Create a listener on local network that our server will run on and
+	// our client will connect to
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	// Configure client's TLS credentials to use our CA as the client's root CA
+	clientTLSConfig, err := config.SetupTLSConfig(config.TLSConfig{
+		CAFile: config.CAFile,
+	})
+	require.NoError(t, err)
+
+	clientCreds := credentials.NewTLS(clientTLSConfig)
+
+	// Initialize the test client
+	clientConn, err := grpc.Dial(
+		l.Addr().String(),
+		grpc.WithTransportCredentials(clientCreds),
+	)
+	require.NoError(t, err)
+
+	client = api.NewLogClient(clientConn)
+
+	// Configure TLS credentials for our gRPC server
+	serverTLSConfig, err := config.SetupTLSConfig(config.TLSConfig{
+		CertFile:      config.ServerCertFile,
+		KeyFile:       config.ServerKeyFile,
+		CAFile:        config.CAFile,
+		ServerAddress: l.Addr().String(),
+	})
+	require.NoError(t, err)
+
+	serverCreds := credentials.NewTLS(serverTLSConfig)
+
 	// Setup the log
-	dir, err := ioutil.TempDir("", "server-test")
+	dir, err := os.MkdirTemp("", "server-test")
 	require.NoError(t, err)
 	commitLog, err := log.NewLog(dir, log.Config{})
 	require.NoError(t, err)
 
-	// Create a listener on local network that our server will run on and
-	// our client will connect to
-	l, err := net.Listen("tcp", ":0")
-	require.NoError(t, err)
-
 	// Create the test gRPC server
-	config = &Config{CommitLog: commitLog}
-	server, err := NewGRPCServer(config)
+	cfg = &Config{
+		CommitLog: commitLog,
+	}
+
+	if fn != nil {
+		fn(cfg)
+	}
+
+	server, err := NewGRPCServer(cfg, grpc.Creds(serverCreds))
 	require.NoError(t, err)
 
 	go func() {
 		server.Serve(l)
 	}()
 
-	// Initialize the test client
-	clientOptions := []grpc.DialOption{grpc.WithInsecure()}
-	clientConn, err := grpc.Dial(l.Addr().String(), clientOptions...)
-	require.NoError(t, err)
-
-	client = api.NewLogClient(clientConn)
-
-	return client, config, func() {
+	return client, cfg, func() {
 		server.Stop()
 		clientConn.Close()
 		l.Close()

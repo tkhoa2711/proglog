@@ -1,7 +1,7 @@
 package log
 
 import (
-	"io/ioutil"
+	"os"
 	"path"
 	"sort"
 	"strconv"
@@ -39,7 +39,7 @@ func NewLog(dir string, c Config) (*Log, error) {
 // setup initializes the log based on segments that already exists or, if this
 // is a new log without existing segments, bootstraps the initial segment.
 func (l *Log) setup() error {
-	files, err := ioutil.ReadDir(l.Dir)
+	files, err := os.ReadDir(l.Dir)
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 // TLSConfig defines the parameters that SetupTLSConfig() uses to determine what
@@ -43,7 +43,7 @@ func SetupTLSConfig(cfg TLSConfig) (*tls.Config, error) {
 	}
 
 	if cfg.CAFile != "" {
-		b, err := ioutil.ReadFile(cfg.CAFile)
+		b, err := os.ReadFile(cfg.CAFile)
 		if err != nil {
 			return nil, err
 		}

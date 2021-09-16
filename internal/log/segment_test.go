@@ -3,7 +3,6 @@ package log
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -12,7 +11,7 @@ import (
 )
 
 func makeSegment(baseOffset uint64) (s *segment, dir string, err error) {
-	dir, err = ioutil.TempDir("", "segment-test")
+	dir, err = os.MkdirTemp("", "segment-test")
 	if err != nil {
 		return nil, "", err
 	}
@@ -45,7 +44,7 @@ func makeSegmentWithSomeData(baseOffset uint64, record *api.Record) (s *segment,
 }
 
 func TestNewSegment(t *testing.T) {
-	dir, _ := ioutil.TempDir("", "segment-test")
+	dir, _ := os.MkdirTemp("", "segment-test")
 	defer os.RemoveAll(dir)
 
 	c := Config{}

@@ -1,7 +1,6 @@
 package log
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -30,7 +29,7 @@ func TestLog(t *testing.T) {
 		"read out of range":           testLogReadOutOfRange,
 	} {
 		t.Run(scenario, func(t *testing.T) {
-			dir, err := ioutil.TempDir("", "log-test")
+			dir, err := os.MkdirTemp("", "log-test")
 			require.NoError(t, err)
 			defer os.RemoveAll(dir)
 

@@ -2,7 +2,6 @@ package log
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"testing"
@@ -33,7 +32,7 @@ var (
 // returns the underlying physical file that the caller of this function needs
 // to explicitly close it.
 func makeNewIndexWithSomeData() (*index, *os.File, error) {
-	f, err := ioutil.TempFile(os.TempDir(), "new_index_test_*")
+	f, err := os.CreateTemp(os.TempDir(), "new_index_test_*")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -55,7 +54,7 @@ func makeNewIndexWithSomeData() (*index, *os.File, error) {
 }
 
 func TestIndexNewIndex(t *testing.T) {
-	f, err := ioutil.TempFile(os.TempDir(), "new_index_test")
+	f, err := os.CreateTemp(os.TempDir(), "new_index_test")
 	require.NoError(t, err)
 	defer os.Remove(f.Name())
 
